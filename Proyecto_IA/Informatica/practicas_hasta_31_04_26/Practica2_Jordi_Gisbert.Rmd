@@ -1,0 +1,310 @@
+---
+title: "Práctica 2 - Herramientas Exploratorias para Dos o Mas Variables"
+author: "Jordi Gisbert"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Parte 0: Preparacion de los datos
+
+```{r}
+datos <- read.csv("CURS8990-Codif.csv", fileEncoding = "latin1", strip.white = TRUE)
+datos <- datos[, 1:11]
+head(datos)
+```
+
+```{r}
+cat("Numero de variables:", ncol(datos), "\n")
+cat("Numero de alumnos:", nrow(datos), "\n")
+cat("Casos completos:", sum(complete.cases(datos)), "\n\n")
+str(datos)
+```
+
+Hay datos faltantes en POLITICA (5), TRANSPORTE (2) y PROBLEMA (2). Tenemos 5 variables cualitativas y 6 cuantitativas.
+
+---
+
+# Parte 1: Analisis cualitativa-cualitativa
+
+## Variables: SEXO y POLITICA
+
+Queremos ver si la tendencia politica tiene algo que ver con el genero del alumno.
+
+### Tabla de contingencia - frecuencias absolutas
+
+```{r}
+datos_sp <- datos[!is.na(datos$SEXO) & !is.na(datos$POLITICA) &
+                  datos$SEXO != "" & datos$POLITICA != "", ]
+
+tab_abs <- table(SEXO = datos_sp$SEXO, POLITICA = datos_sp$POLITICA)
+addmargins(tab_abs)
+```
+
+### Frecuencias relativas sobre el total
+
+```{r}
+round(prop.table(tab_abs) * 100, 2)
+```
+
+### Frecuencias condicionales: POLITICA dado SEXO (por fila)
+
+```{r}
+round(prop.table(tab_abs, margin = 1) * 100, 2)
+```
+
+### Frecuencias condicionales: SEXO dado POLITICA (por columna)
+
+```{r}
+round(prop.table(tab_abs, margin = 2) * 100, 2)
+```
+
+La tabla por columna nos dice que porcentaje de cada opcion politica son chicos o chicas. La tabla por fila es la contraria: dado que es una chica, que opcion politica tiene. Esta segunda es mas util para ver si hay relacion.
+
+### Diagrama de barras
+
+```{r}
+barplot(tab_abs, beside = TRUE, legend = TRUE,
+        main = "SEXO x POLITICA", xlab = "Opcion politica",
+        ylab = "Frecuencia")
+```
+
+### Grafico de mosaico
+
+```{r}
+mosaicplot(tab_abs, main = "Grafico de mosaico - SEXO x POLITICA",
+           color = TRUE)
+```
+
+### Medida de asociacion: V de Cramer
+
+```{r}
+chi2 <- chisq.test(tab_abs)
+n <- sum(tab_abs)
+k <- min(nrow(tab_abs), ncol(tab_abs))
+V_cramer <- sqrt(chi2$statistic / (n * (k - 1)))
+
+cat("Chi-cuadrado:", round(chi2$statistic, 4), "\n")
+cat("p-valor:", round(chi2$p.value, 4), "\n")
+cat("V de Cramer:", round(V_cramer, 4), "\n")
+```
+
+V de Cramer aproximadamente 0.17 indica una asociacion baja entre SEXO y POLITICA. Si miramos solo frecuencias absolutas parece que en todas las opciones hay mas chicos, pero es porque hay mas chicos en la muestra. Las frecuencias condicionales muestran que entre las chicas las opciones principales son izquierda y centro, mientras que entre los chicos hay mas de derecha y pasotas, aunque la diferencia no es muy grande.
+
+---
+
+# Parte 2: Analisis cuantitativa-cuantitativa
+
+## Variables: ESTATURA, PESO y EDAD
+
+### Diagrama de dispersion: ESTATURA vs PESO
+
+```{r}
+plot(datos$ESTATURA, datos$PESO,
+     main = "Dispersion: ESTATURA vs PESO",
+     xlab = "Estatura (cm)", ylab = "Peso (kg)")
+abline(lm(PESO ~ ESTATURA, data = datos), col = "red")
+```
+
+Ponemos ESTATURA en el eje X porque tiene mas sentido: una persona mas alta tiende a pesar mas, no al reves. La recta muestra una relacion positiva bastante clara.
+
+### Covarianza y correlacion de Pearson
+
+```{r}
+datos_cc <- datos[!is.na(datos$ESTATURA) & !is.na(datos$PESO) & !is.na(datos$EDAD), ]
+
+cat("--- ESTATURA vs PESO ---\n")
+cat("Covarianza:", round(cov(datos_cc$ESTATURA, datos_cc$PESO), 3), "\n")
+cat("Correlacion r:", round(cor(datos_cc$ESTATURA, datos_cc$PESO), 4), "\n\n")
+
+cat("--- ESTATURA vs EDAD ---\n")
+cat("Covarianza:", round(cov(datos_cc$ESTATURA, datos_cc$EDAD), 3), "\n")
+cat("Correlacion r:", round(cor(datos_cc$ESTATURA, datos_cc$EDAD), 4), "\n\n")
+
+cat("--- PESO vs EDAD ---\n")
+cat("Covarianza:", round(cov(datos_cc$PESO, datos_cc$EDAD), 3), "\n")
+cat("Correlacion r:", round(cor(datos_cc$PESO, datos_cc$EDAD), 4), "\n")
+```
+
+ESTATURA-PESO tiene una correlacion moderada-fuerte y positiva: a mayor estatura, mayor peso. ESTATURA-EDAD y PESO-EDAD tienen correlaciones casi nulas, lo cual tiene sentido porque en este rango de edad (19-32 anos) los jovenes ya no crecen ni engordan por la edad.
+
+### Extension: ESTATURA vs EDAD y PESO vs EDAD
+
+```{r}
+plot(datos$EDAD, datos$ESTATURA,
+     main = "ESTATURA vs EDAD",
+     xlab = "Edad (anos)", ylab = "Estatura (cm)")
+abline(lm(ESTATURA ~ EDAD, data = datos), col = "red")
+```
+
+```{r}
+plot(datos$EDAD, datos$PESO,
+     main = "PESO vs EDAD",
+     xlab = "Edad (anos)", ylab = "Peso (kg)")
+abline(lm(PESO ~ EDAD, data = datos), col = "red")
+```
+
+### Matriz de correlaciones
+
+```{r}
+mat_cor <- cor(datos_cc[, c("ESTATURA", "PESO", "EDAD")], use = "complete.obs")
+round(mat_cor, 4)
+```
+
+```{r}
+pairs(datos_cc[, c("ESTATURA", "PESO", "EDAD")],
+      main = "Matriz de dispersion - ESTATURA, PESO y EDAD")
+```
+
+---
+
+# Parte 3: Cuantitativa en funcion de cualitativa
+
+## ESTATURA segun SEXO
+
+Queremos ver si la estatura es diferente entre chicos y chicas.
+
+### Resumen estadistico por sexo
+
+```{r}
+chicos <- datos[datos$SEXO == "chicos" & !is.na(datos$ESTATURA), ]
+chicas <- datos[datos$SEXO == "chicas" & !is.na(datos$ESTATURA), ]
+
+cat("--- Chicos ---\n")
+cat("N:", nrow(chicos), "\n")
+cat("Media:", round(mean(chicos$ESTATURA), 2), "\n")
+cat("Mediana:", round(median(chicos$ESTATURA), 2), "\n")
+cat("Desv. tipica:", round(sd(chicos$ESTATURA), 2), "\n")
+cat("IQR:", IQR(chicos$ESTATURA), "\n\n")
+
+cat("--- Chicas ---\n")
+cat("N:", nrow(chicas), "\n")
+cat("Media:", round(mean(chicas$ESTATURA), 2), "\n")
+cat("Mediana:", round(median(chicas$ESTATURA), 2), "\n")
+cat("Desv. tipica:", round(sd(chicas$ESTATURA), 2), "\n")
+cat("IQR:", IQR(chicas$ESTATURA), "\n")
+```
+
+### Boxplot multiple
+
+```{r}
+boxplot(ESTATURA ~ SEXO, data = datos,
+        main = "Box-Whisker de ESTATURA por SEXO",
+        xlab = "Sexo", ylab = "Estatura (cm)")
+```
+
+```{r}
+dif <- mean(chicos$ESTATURA) - mean(chicas$ESTATURA)
+cat("Diferencia de medias (chicos - chicas):", round(dif, 2), "cm\n\n")
+
+cat("Existen diferencias entre grupos? Si, los chicos son de media",
+    round(dif, 1), "cm mas altos.\n\n")
+
+cat("Que grupo tiene mayor dispersion?\n")
+cat("  Chicos sd:", round(sd(chicos$ESTATURA), 2), "cm\n")
+cat("  Chicas sd:", round(sd(chicas$ESTATURA), 2), "cm\n")
+cat("  Los chicos tienen algo mas de dispersion.\n\n")
+
+cat("Hay valores atipicos? El boxplot no muestra puntos fuera de los bigotes.\n\n")
+
+cat("Influye el SEXO en la ESTATURA? Sin duda.\n")
+cat("La diferencia de ~12 cm es muy clara y consistente.\n")
+```
+
+---
+
+# Parte 4: Analisis adicional
+
+## ESTATURA-PESO diferenciando por SEXO
+
+```{r}
+plot(chicos$ESTATURA, chicos$PESO,
+     col = "blue", pch = 16,
+     xlim = range(datos$ESTATURA, na.rm = TRUE),
+     ylim = range(datos$PESO, na.rm = TRUE),
+     main = "ESTATURA vs PESO por SEXO",
+     xlab = "Estatura (cm)", ylab = "Peso (kg)")
+points(chicas$ESTATURA, chicas$PESO, col = "red", pch = 17)
+abline(lm(PESO ~ ESTATURA, data = chicos), col = "blue")
+abline(lm(PESO ~ ESTATURA, data = chicas), col = "red")
+legend("topleft", legend = c("Chicos", "Chicas"),
+       col = c("blue", "red"), pch = c(16, 17))
+```
+
+```{r}
+cor_total  <- round(cor(datos$ESTATURA, datos$PESO, use = "complete.obs"), 4)
+cor_chicos <- round(cor(chicos$ESTATURA, chicos$PESO), 4)
+cor_chicas <- round(cor(chicas$ESTATURA, chicas$PESO), 4)
+
+cat("Correlacion total:", cor_total, "\n")
+cat("Correlacion chicos:", cor_chicos, "\n")
+cat("Correlacion chicas:", cor_chicas, "\n\n")
+
+cat("La relacion es positiva en ambos grupos pero al separar por sexo la\n")
+cat("correlacion baja respecto al total. El sexo actua como variable de\n")
+cat("confusion: los chicos son sistematicamente mas altos Y mas pesados,\n")
+cat("lo que infla la correlacion global.\n")
+```
+
+---
+
+# Parte 5: Analisis con seleccion de datos
+
+## Solo chicas: relacion ESTATURA-PESO
+
+En Statgraphics se usaba el campo Seleccion con SEXO="chicas". En R simplemente filtramos.
+
+```{r}
+chicas_ep <- datos[datos$SEXO == "chicas" & !is.na(datos$ESTATURA) & !is.na(datos$PESO), ]
+cat("Numero de chicas:", nrow(chicas_ep), "\n")
+```
+
+```{r}
+plot(chicas_ep$ESTATURA, chicas_ep$PESO,
+     main = "ESTATURA vs PESO - Solo chicas",
+     xlab = "Estatura (cm)", ylab = "Peso (kg)")
+abline(lm(PESO ~ ESTATURA, data = chicas_ep), col = "red")
+```
+
+```{r}
+cat("Covarianza:", round(cov(chicas_ep$ESTATURA, chicas_ep$PESO), 3), "\n")
+cat("Correlacion de Pearson:", round(cor(chicas_ep$ESTATURA, chicas_ep$PESO), 4), "\n\n")
+
+cat("Comparacion:\n")
+cat("  r total: ", cor_total, "\n")
+cat("  r chicas:", round(cor(chicas_ep$ESTATURA, chicas_ep$PESO), 4), "\n\n")
+
+cat("La relacion sigue siendo positiva en las chicas pero la correlacion\n")
+cat("es algo mas baja que en la muestra completa. Esto confirma que parte\n")
+cat("de la correlacion total se debia al efecto del sexo. Analizar\n")
+cat("subconjuntos ayuda a separar efectos y entender mejor los datos.\n")
+```
+
+---
+
+# Parte 6: Conclusiones
+
+**Que relaciones hemos encontrado?**
+La mas clara es ESTATURA-PESO, con una correlacion moderada-fuerte y positiva. El SEXO influye mucho en la ESTATURA y actua como variable de confusion en el analisis conjunto.
+
+**Que variables estan mas relacionadas?**
+ESTATURA y PESO son las mas correlacionadas entre las cuantitativas. El par SEXO-ESTATURA muestra la diferencia mas evidente a nivel cualitativo-cuantitativo.
+
+**Que tipo de relaciones aparecen?**
+Las relaciones cuantitativas son lineales positivas donde existen. La relacion SEXO-POLITICA es debil y nominal.
+
+**Has detectado valores atipicos?**
+No hay outliers claros en ESTATURA. En EDAD y TIEMPO (Practica 1) si habia algun valor extremo en la cola superior.
+
+**Que limitaciones tiene el analisis?**
+La muestra es pequena (131 alumnos de un unico curso), lo que limita la generalizacion. El rango de EDAD es muy estrecho, lo que reduce las correlaciones con esa variable.
+
+---
+
+# Sesion de R
+
+```{r}
+sessionInfo()
+```

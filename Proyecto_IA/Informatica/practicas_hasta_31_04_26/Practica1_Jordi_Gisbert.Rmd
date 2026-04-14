@@ -1,0 +1,367 @@
+---
+title: "Práctica 1 - Herramientas Exploratorias para una Variable"
+author: "Jordi Gisbert"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# 1. Hoja de datos
+
+Cargamos el fichero de datos con read.csv. El fichero tiene espacios en los nombres de columna y en los valores, así que los limpiamos.
+
+```{r}
+datos <- read.csv("CURS8990-Codif.csv", fileEncoding = "latin1", strip.white = TRUE)
+datos <- datos[, 1:11]
+head(datos)
+```
+
+---
+
+# 2. Análisis exploratorios
+
+## 2.1. Información sobre el conjunto de datos
+
+```{r}
+cat("Numero de variables:", ncol(datos), "\n")
+cat("Numero de alumnos:", nrow(datos), "\n")
+cat("Casos completos:", sum(complete.cases(datos)), "\n")
+str(datos)
+```
+
+---
+
+## 2.2. Variables cualitativas - RESIDENCIA
+
+### Tabla de frecuencias
+
+```{r}
+frec <- table(datos$RESIDENCIA)
+frec_rel <- round(prop.table(frec) * 100, 2)
+frec_acum <- cumsum(frec)
+frec_rel_acum <- cumsum(frec_rel)
+
+tabla_res <- data.frame(
+  Frec_abs = as.numeric(frec),
+  Frec_rel = as.numeric(frec_rel),
+  Frec_acum = as.numeric(frec_acum),
+  Frec_rel_acum = as.numeric(frec_rel_acum)
+)
+rownames(tabla_res) <- names(frec)
+tabla_res
+```
+
+### Diagrama de barras
+
+```{r}
+barplot(frec, main = "Diagrama de barras - RESIDENCIA",
+        xlab = "Tipo de residencia", ylab = "Frecuencia")
+```
+
+### Diagrama de sectores
+
+```{r}
+pie(frec, main = "Diagrama de sectores - RESIDENCIA")
+```
+
+---
+
+## 2.3. Variables cuantitativas - PESO
+
+### Tabla de frecuencias
+
+```{r}
+breaks_peso <- seq(40, 95, length.out = 11)
+clases <- cut(datos$PESO, breaks = breaks_peso, include.lowest = TRUE, right = FALSE)
+frec_peso <- table(clases)
+frec_rel_peso <- round(prop.table(frec_peso) * 100, 2)
+frec_acum_peso <- cumsum(frec_peso)
+frec_rel_acum_peso <- cumsum(frec_rel_peso)
+
+tabla_peso <- data.frame(
+  Frec_abs = as.numeric(frec_peso),
+  Frec_rel = as.numeric(frec_rel_peso),
+  Frec_acum = as.numeric(frec_acum_peso),
+  Frec_rel_acum = as.numeric(frec_rel_acum_peso)
+)
+rownames(tabla_peso) <- names(frec_peso)
+tabla_peso
+```
+
+La Clase 3 muestra cuántos alumnos tienen un peso dentro de ese intervalo, qué porcentaje representan y los acumulados hasta esa clase.
+
+### Histograma - todos los alumnos
+
+```{r}
+hist(datos$PESO, breaks = breaks_peso, right = FALSE,
+     main = "Histograma de PESO - todos los alumnos",
+     xlab = "Peso (kg)", ylab = "Frecuencia", col = "lightblue")
+```
+
+El histograma muestra que la mayoría de alumnos pesa entre 60 y 75 kg, con una ligera asimetría hacia la derecha.
+
+### Histograma - solo chicos
+
+```{r}
+chicos <- datos[datos$SEXO == "chicos", ]
+breaks_chicos <- seq(54, 94, length.out = 9)
+
+hist(chicos$PESO, breaks = breaks_chicos, right = FALSE,
+     main = "Histograma de PESO - solo chicos",
+     xlab = "Peso (kg)", ylab = "Frecuencia", col = "lightblue")
+```
+
+Comparado con el de todos los alumnos, el histograma de los chicos se desplaza a la derecha, lo cual tiene sentido.
+
+### Poligono de frecuencias acumuladas - chicos
+
+```{r}
+clases_chicos <- cut(chicos$PESO, breaks = breaks_chicos,
+                     include.lowest = TRUE, right = FALSE)
+frec_ch <- table(clases_chicos)
+frec_acum_ch <- cumsum(frec_ch) / sum(frec_ch) * 100
+limites_sup <- breaks_chicos[-1]
+
+plot(limites_sup, frec_acum_ch, type = "b",
+     main = "Poligono de frecuencias acumuladas - PESO chicos",
+     xlab = "Peso (kg)", ylab = "Frecuencia relativa acumulada (%)")
+```
+
+### Percentiles - chicos
+
+```{r}
+quantile(chicos$PESO, probs = c(0.10, 0.25, 0.50, 0.75, 0.90), na.rm = TRUE)
+```
+
+Los percentiles son la lectura inversa del poligono acumulado: si el poligono llega al 75% en el peso X, entonces P75 = X.
+
+### Medidas resumen - todos los alumnos
+
+```{r}
+peso <- datos$PESO
+
+cat("Media:", mean(peso, na.rm = TRUE), "\n")
+cat("Mediana:", median(peso, na.rm = TRUE), "\n")
+cat("Desv. tipica:", sd(peso, na.rm = TRUE), "\n")
+cat("Varianza:", var(peso, na.rm = TRUE), "\n")
+cat("Minimo:", min(peso, na.rm = TRUE), "\n")
+cat("Maximo:", max(peso, na.rm = TRUE), "\n")
+cat("Rango:", diff(range(peso, na.rm = TRUE)), "\n")
+cat("Q1:", quantile(peso, 0.25, na.rm = TRUE), "\n")
+cat("Q3:", quantile(peso, 0.75, na.rm = TRUE), "\n")
+cat("IQR:", IQR(peso, na.rm = TRUE), "\n")
+cat("Coef. de variacion (%):", round(sd(peso, na.rm = TRUE) / mean(peso, na.rm = TRUE) * 100, 2), "\n")
+```
+
+Los parametros robustos (mediana, IQR, cuartiles) no se ven afectados por valores extremos. Los no robustos (media, desviacion tipica) si. Si hubiera outliers claros conviene usar mediana e IQR.
+
+### Diagrama de caja y bigotes
+
+```{r}
+boxplot(datos$PESO, main = "Box-Whisker - PESO (todos los alumnos)",
+        ylab = "Peso (kg)")
+```
+
+La caja va del Q1 al Q3, la linea central es la mediana y los puntos fuera son outliers. Para describir el peso del alumnado lo mas adecuado es usar mediana (posicion) y rango intercuartilico (dispersion).
+
+---
+
+# 3. Ejercicios
+
+## 3.1. Analisis de PROBLEMA
+
+```{r}
+# 1) Tipo de variable
+cat("1) PROBLEMA es una variable CUALITATIVA NOMINAL.\n\n")
+
+# 2) Datos faltantes
+cat("2) Datos faltantes en PROBLEMA:", sum(is.na(datos$PROBLEMA) | datos$PROBLEMA == ""), "\n\n")
+
+# 3) Valores posibles
+cat("3) Valores posibles:\n")
+print(unique(datos$PROBLEMA[datos$PROBLEMA != ""]))
+```
+
+```{r}
+# Tabla de frecuencias
+frec_prob <- sort(table(datos$PROBLEMA[datos$PROBLEMA != ""]), decreasing = TRUE)
+frec_rel_prob <- round(prop.table(frec_prob) * 100, 2)
+
+tabla_prob <- data.frame(
+  Frec_abs = as.numeric(frec_prob),
+  Frec_rel = as.numeric(frec_rel_prob),
+  Frec_acum = cumsum(as.numeric(frec_prob)),
+  Frec_rel_acum = cumsum(as.numeric(frec_rel_prob))
+)
+rownames(tabla_prob) <- names(frec_prob)
+tabla_prob
+```
+
+```{r}
+barplot(frec_prob, main = "Distribucion de PROBLEMA",
+        xlab = "Problema socioeconomico", ylab = "Frecuencia")
+```
+
+```{r}
+# 4 a 7
+cat("4) No, no los consideran igualmente importantes. El paro destaca claramente.\n\n")
+
+cat("5) Porcentaje que considera el paro el mayor problema:",
+    frec_rel_prob["paro"], "%\n\n")
+
+cat("6) Alumnos que senalan el terrorismo:",
+    frec_prob["terrorismo"], "\n\n")
+
+cat("7) PROBLEMA es nominal, solo tiene sentido la MODA.\n")
+cat("   Moda:", names(frec_prob)[1], "con", frec_prob[1], "alumnos.\n")
+cat("   La media y la mediana no aplican para variables nominales.\n")
+```
+
+---
+
+## 3.2. Analisis de EDAD
+
+```{r}
+cat("1) EDAD es CUANTITATIVA DISCRETA (anos cumplidos).\n\n")
+
+cat("2) Datos faltantes:", sum(is.na(datos$EDAD)), "\n\n")
+```
+
+```{r}
+# 3) Atipicos con criterio 1.5*IQR
+q1_e <- quantile(datos$EDAD, 0.25, na.rm = TRUE)
+q3_e <- quantile(datos$EDAD, 0.75, na.rm = TRUE)
+iqr_e <- IQR(datos$EDAD, na.rm = TRUE)
+lim_sup_e <- q3_e + 1.5 * iqr_e
+
+cat("3) Limite superior para atipicos:", lim_sup_e, "\n")
+atip_e <- datos$EDAD[datos$EDAD > lim_sup_e]
+cat("   Valores atipicos:", paste(atip_e, collapse = ", "), "\n")
+cat("   Podria ser un alumno que se incorporo tarde. No necesariamente un error.\n\n")
+
+cat("4) Rango:", min(datos$EDAD, na.rm = TRUE), "-", max(datos$EDAD, na.rm = TRUE), "anos\n")
+```
+
+```{r}
+hist(datos$EDAD, breaks = seq(18.5, 32.5, by = 1),
+     main = "Histograma - EDAD", xlab = "Edad (anos)", ylab = "Frecuencia",
+     col = "lightblue")
+```
+
+```{r}
+boxplot(datos$EDAD, main = "Box-Whisker - EDAD", ylab = "Edad (anos)")
+```
+
+```{r}
+frec_edad <- table(datos$EDAD)
+frec_rel_edad <- round(prop.table(frec_edad) * 100, 2)
+frec_acum_edad <- cumsum(frec_edad)
+frec_rel_acum_edad <- cumsum(frec_rel_edad)
+
+tabla_edad <- data.frame(
+  Frec_abs = as.numeric(frec_edad),
+  Frec_rel = as.numeric(frec_rel_edad),
+  Frec_acum = as.numeric(frec_acum_edad),
+  Frec_rel_acum = as.numeric(frec_rel_acum_edad)
+)
+rownames(tabla_edad) <- names(frec_edad)
+tabla_edad
+```
+
+```{r}
+p10_e <- quantile(datos$EDAD, 0.10, na.rm = TRUE)
+pct_m23 <- round(mean(datos$EDAD > 23, na.rm = TRUE) * 100, 2)
+n_19_20 <- sum(datos$EDAD >= 19 & datos$EDAD <= 20, na.rm = TRUE)
+
+cat("5) El 10% de los alumnos tiene edad <=", p10_e, "anos.\n")
+cat("6) P10 =", p10_e, "anos.\n")
+cat("7) Alumnos con edad > 23 anos:", pct_m23, "%\n")
+cat("8) Alumnos entre 19 y 20 anos:", n_19_20, "\n\n")
+
+cat("9) La mayoria tiene entre 19 y 22 anos. Hay asimetria positiva\n")
+cat("   (cola hacia edades mayores) con algun valor extremo alto.\n\n")
+
+cat("10) Estadistico de centralizacion: MEDIANA =",
+    median(datos$EDAD, na.rm = TRUE), "anos.\n")
+cat("    Se prefiere la mediana por los valores atipicos.\n\n")
+
+cat("11) Estadistico de dispersion: IQR =", IQR(datos$EDAD, na.rm = TRUE), "anos.\n")
+cat("    Mas robusto que la desviacion tipica ante outliers.\n")
+```
+
+---
+
+## 3.3. Analisis de TIEMPO
+
+```{r}
+cat("1) TIEMPO es CUANTITATIVA CONTINUA (minutos).\n\n")
+cat("2) Datos faltantes:", sum(is.na(datos$TIEMPO)), "\n\n")
+```
+
+```{r}
+q1_t <- quantile(datos$TIEMPO, 0.25, na.rm = TRUE)
+q3_t <- quantile(datos$TIEMPO, 0.75, na.rm = TRUE)
+iqr_t <- IQR(datos$TIEMPO, na.rm = TRUE)
+lim_sup_t <- q3_t + 1.5 * iqr_t
+
+cat("3) Limite superior para atipicos:", lim_sup_t, "min\n")
+atip_t <- datos$TIEMPO[datos$TIEMPO > lim_sup_t]
+cat("   Valores atipicos:", paste(sort(unique(atip_t)), collapse = ", "), "min\n")
+cat("   Puede ser real, alguien que viene de lejos.\n\n")
+
+cat("4) Rango:", min(datos$TIEMPO, na.rm = TRUE), "-",
+    max(datos$TIEMPO, na.rm = TRUE), "minutos\n")
+```
+
+```{r}
+breaks_t <- seq(0, 95, by = 5)
+hist(datos$TIEMPO, breaks = breaks_t, right = FALSE,
+     main = "Histograma - TIEMPO", xlab = "Tiempo (min)",
+     ylab = "Frecuencia", col = "lightblue")
+```
+
+```{r}
+clases_t <- cut(datos$TIEMPO, breaks = breaks_t, include.lowest = TRUE, right = FALSE)
+frec_t <- table(clases_t)
+frec_t <- frec_t[frec_t > 0]
+frec_acum_t <- cumsum(frec_t) / sum(frec_t) * 100
+lim_t <- breaks_t[-1][seq_along(frec_t)]
+
+plot(lim_t, frec_acum_t, type = "b",
+     main = "Poligono de frecuencias acumuladas - TIEMPO",
+     xlab = "Tiempo (min)", ylab = "Frec. relativa acumulada (%)")
+```
+
+```{r}
+boxplot(datos$TIEMPO, main = "Box-Whisker - TIEMPO", ylab = "Tiempo (min)")
+```
+
+```{r}
+p75_t <- quantile(datos$TIEMPO, 0.75, na.rm = TRUE)
+pct_m25 <- round(mean(datos$TIEMPO > 25, na.rm = TRUE) * 100, 2)
+n_25_30 <- sum(datos$TIEMPO >= 25 & datos$TIEMPO < 30, na.rm = TRUE)
+
+cat("5) El 75% de los alumnos tarda menos de", p75_t, "min.\n")
+cat("6) P75 =", p75_t, "minutos.\n")
+cat("7) Alumnos que tardan mas de 25 min:", pct_m25, "%\n")
+cat("8) Alumnos entre 25 y 30 min:", n_25_30, "\n\n")
+
+cat("9) Distribucion claramente sesgada a la derecha. La mayoria tarda\n")
+cat("   entre 10 y 30 min pero hay una cola con valores altos.\n\n")
+
+cat("10) Estadistico de centralizacion: MEDIANA =",
+    median(datos$TIEMPO, na.rm = TRUE), "min.\n")
+cat("    La media se ve muy afectada por los valores extremos.\n\n")
+
+cat("11) Estadistico de dispersion: IQR =", IQR(datos$TIEMPO, na.rm = TRUE), "min.\n")
+```
+
+---
+
+# Sesion de R
+
+```{r}
+sessionInfo()
+```

@@ -1,0 +1,55 @@
+---
+title: "Práctica 0: Introducción al Análisis Estadístico con R"
+author: "Jordi Gisbert Ferriz"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+# Carga de datos: CURS8990-Codif [cite: 4]
+# Se recomienda exportar el archivo original a .csv para evitar errores de compatibilidad.
+datos <- read_csv("CURS8990-Codif.csv")
+```
+
+### 2. Análisis Descriptivo: Variables Cualitativas
+El manual solicita analizar la variable **RESIDENCIA** mediante diagramas de barras y de sectores[cite: 807].
+
+```{r parte2, echo=TRUE}
+### 2.1 Análisis de RESIDENCIA
+# Tabla de frecuencias [cite: 857]
+tabla_residencia <- datos %>%
+  count(RESIDENCIA) %>%
+  mutate(porcentaje = n / sum(n) * 100)
+
+# Diagrama de barras [cite: 861]
+ggplot(datos, aes(x = factor(RESIDENCIA))) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Diagrama de Barras de RESIDENCIA", x = "Residencia", y = "Frecuencia")
+
+# Diagrama de sectores (tarta) [cite: 863]
+ggplot(tabla_residencia, aes(x = "", y = n, fill = factor(RESIDENCIA))) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  labs(title = "Diagrama de Sectores de RESIDENCIA")
+```
+
+
+
+##
+
+### 3.1 Análisis de PESO
+# Definición de intervalos según el manual 
+cortes <- seq(40, 95, length.out = 11)
+tabla_peso <- datos %>%
+  mutate(clases = cut(PESO, breaks = cortes, right = FALSE)) %>%
+  count(clases)
+
+# Histograma con 10 tramos [cite: 1015, 1016]
+ggplot(datos, aes(x = PESO)) +
+  geom_histogram(breaks = cortes, fill = "forestgreen", color = "white") +
+  labs(title = "Histograma de PESO (10 tramos)", x = "Peso (kg)", y = "Frecuencia")
+
+
+
+
