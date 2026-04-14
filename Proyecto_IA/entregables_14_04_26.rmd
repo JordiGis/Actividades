@@ -1,0 +1,129 @@
+---
+title: "Entregables 14-04-2026 - Correlación de Spearman"
+author: "Alumno"
+date: "2026-04-14"
+output: html_document
+---
+
+# Ejercicio 1: Coeficiente de Correlación de Spearman (Empate de rangos)
+
+![Ejercicio Spearman 1](img/ejercicio_spearman_1.png)
+
+## Datos
+
+Introducimos los datos proporcionados en la tabla.
+
+```{r}
+# Crear el data frame con los datos
+datos_ej1 <- data.frame(
+  Elemento = 1:12,
+  X = c(5, 4, 6, 5, 8, 7, 7, 6, 8, 9, 8, 6),
+  Y = c(12, 10, 15, 11, 16, 15, 14, 13, 17, 18, 16, 12)
+)
+print(datos_ej1)
+```
+
+## Cálculo de Rangos
+
+Calculamos los rangos para $X$ y para $Y$. Al haber empates, asignaremos el rango medio.
+
+```{r}
+# Rango para X
+datos_ej1$Rango_X <- rank(datos_ej1$X)
+# Rango para Y
+datos_ej1$Rango_Y <- rank(datos_ej1$Y)
+
+print(datos_ej1)
+```
+
+## Diferencia de Rangos y $d_i^2$
+
+Calculamos la diferencia entre los rangos $d_i = Rango\_X - Rango\_Y$, y su cuadrado $d_i^2$.
+
+```{r}
+datos_ej1$d <- datos_ej1$Rango_X - datos_ej1$Rango_Y
+datos_ej1$d2 <- datos_ej1$d^2
+
+print(datos_ej1)
+
+# Suma de d_i^2
+suma_d2_ej1 <- sum(datos_ej1$d2)
+cat("La suma de las diferencias al cuadrado (Sum d_i^2) es:", suma_d2_ej1, "\n")
+```
+
+## Cálculo del Coeficiente $r_s$
+
+La fórmula del coeficiente de correlación de Spearman es:
+$$ r_s = 1 - \frac{6 \sum d_i^2}{n(n^2 - 1)} $$
+*Nota: Esta fórmula es una aproximación cuando hay empates. Dado que el enunciado no pide corregir por empates específicamente, aplicaremos la fórmula estándar.*
+
+```{r}
+n_ej1 <- nrow(datos_ej1)
+r_s_ej1 <- 1 - ( (6 * suma_d2_ej1) / (n_ej1 * (n_ej1^2 - 1)) )
+
+cat("El coeficiente de correlación de Spearman (r_s) es:", round(r_s_ej1, 3), "\n")
+```
+
+Para comprobar, podemos usar la función `cor` de R:
+
+```{r}
+cor_spearman_ej1 <- cor(datos_ej1$X, datos_ej1$Y, method = "spearman")
+cat("Comprobación con función cor():", round(cor_spearman_ej1, 3), "\n")
+```
+
+Hay una leve diferencia debido a la corrección exacta por empates que hace la función `cor()`. La fórmula manual da una buena aproximación.
+
+***
+
+# Ejercicio 2: Coeficiente de Correlación de Spearman
+
+![Ejercicio Spearman 2](img/ejercicio_spearman_2.png)
+
+## Datos
+
+Introducimos los datos de las series X e Y.
+
+```{r}
+datos_ej2 <- data.frame(
+  Elemento = 1:9,
+  X = c(10, 15, 12, 14, 18, 16, 20, 22, 19),
+  Y = c(25, 30, 28, 35, 40, 38, 45, 50, 48)
+)
+print(datos_ej2)
+```
+
+## Cálculo de Rangos, Diferencias y $d_i^2$
+
+```{r}
+# Rangos
+datos_ej2$Rango_X <- rank(datos_ej2$X)
+datos_ej2$Rango_Y <- rank(datos_ej2$Y)
+
+# Diferencias
+datos_ej2$d <- datos_ej2$Rango_X - datos_ej2$Rango_Y
+datos_ej2$d2 <- datos_ej2$d^2
+
+print(datos_ej2)
+
+# Suma de d_i^2
+suma_d2_ej2 <- sum(datos_ej2$d2)
+cat("La suma de las diferencias al cuadrado (Sum d_i^2) es:", suma_d2_ej2, "\n")
+```
+
+## Cálculo del Coeficiente $r_s$
+
+```{r}
+n_ej2 <- nrow(datos_ej2)
+r_s_ej2 <- 1 - ( (6 * suma_d2_ej2) / (n_ej2 * (n_ej2^2 - 1)) )
+
+cat("El coeficiente de correlación de Spearman (r_s) es:", round(r_s_ej2, 3), "\n")
+```
+
+Comprobación con la función `cor`:
+
+```{r}
+cor_spearman_ej2 <- cor(datos_ej2$X, datos_ej2$Y, method = "spearman")
+cat("Comprobación con función cor():", round(cor_spearman_ej2, 3), "\n")
+```
+
+En este caso, como no hay empates en los rangos, el resultado manual coincide exactamente con el cálculo interno de R. El coeficiente es muy cercano a 1, indicando una correlación positiva muy fuerte.

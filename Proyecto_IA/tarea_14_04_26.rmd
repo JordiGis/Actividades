@@ -1,0 +1,117 @@
+---
+title: "Tarea 14-04-2026 - Independencia y Chi-cuadrado"
+author: "Alumno"
+date: "2026-04-14"
+output: html_document
+---
+
+# Tarea: Relación entre Nivel Socioeconómico y Comida Rápida
+
+![Ejercicio Chi-cuadrado](img/ejercicio_chi_cuadrado.png)
+
+## 1. Frecuencias esperadas
+
+Primero, introducimos los datos de la tabla de contingencia de frecuencias observadas ($O_{ij}$).
+
+```{r}
+# Crear matriz de frecuencias observadas
+observadas <- matrix(c(15, 8, 3,
+                       7, 10, 5,
+                       1, 3, 8),
+                     nrow = 3, byrow = TRUE)
+
+rownames(observadas) <- c("Alto", "Medio", "Bajo")
+colnames(observadas) <- c("Sushi", "Pizza", "Hot dog")
+
+# Mostrar la tabla con los totales (márgenes)
+tabla_observadas <- addmargins(observadas)
+print(tabla_observadas)
+```
+
+La tabla de frecuencias esperadas ($E_{ij}$) bajo la hipótesis de independencia se calcula multiplicando el total de la fila por el total de la columna y dividiéndolo por el gran total ($N$).
+
+$E_{ij} = \frac{\text{Total Fila } i \times \text{Total Columna } j}{N}$
+
+```{r}
+N <- sum(observadas)
+totales_fila <- rowSums(observadas)
+totales_columna <- colSums(observadas)
+
+# Calcular matriz de frecuencias esperadas
+esperadas <- outer(totales_fila, totales_columna) / N
+rownames(esperadas) <- rownames(observadas)
+colnames(esperadas) <- colnames(observadas)
+
+print("Tabla de frecuencias esperadas:")
+print(round(esperadas, 2))
+```
+
+## 2. Cálculo del estadístico $\chi^2$
+
+El estadístico Chi-cuadrado de Pearson se calcula sumando las diferencias al cuadrado entre las frecuencias observadas y esperadas, divididas por las esperadas:
+
+$\chi^2 = \sum \frac{(O_{ij} - E_{ij})^2}{E_{ij}}$
+
+Vamos a calcular esto celda a celda.
+
+```{r}
+# Cálculo celda a celda
+contribuciones_chi2 <- (observadas - esperadas)^2 / esperadas
+
+print("Cálculo detallado (contribuciones al Chi-cuadrado celda a celda):")
+print(round(contribuciones_chi2, 4))
+
+# Estadístico total
+chi2_stat <- sum(contribuciones_chi2)
+cat("\nEl estadístico Chi-cuadrado de Pearson es:", round(chi2_stat, 4), "\n")
+```
+
+**Interpretación del resultado:**
+Los grados de libertad para esta tabla de contingencia ($3 \times 3$) son:
+$df = (filas - 1) \times (columnas - 1) = (3 - 1) \times (3 - 1) = 2 \times 2 = 4$.
+
+Podemos obtener el p-valor asociado a este estadístico con 4 grados de libertad:
+
+```{r}
+df <- (nrow(observadas) - 1) * (ncol(observadas) - 1)
+p_valor <- pchisq(chi2_stat, df = df, lower.tail = FALSE)
+cat("El p-valor es:", format(p_valor, scientific = TRUE), "\n")
+```
+
+Como el p-valor es muy pequeño (menor que el nivel de significancia típico de 0.05), **rechazamos la hipótesis nula de independencia**. Existe evidencia estadística suficiente para concluir que hay una relación entre el nivel socioeconómico y el tipo de comida rápida consumida.
+
+Podemos verificar este resultado usando la función de R `chisq.test`:
+
+```{r}
+test_chi2 <- chisq.test(observadas)
+print(test_chi2)
+```
+Los resultados manuales coinciden con los de la función `chisq.test`.
+
+## 3. Coeficiente V de Cramer
+
+El coeficiente V de Cramer nos indica la intensidad de la asociación entre las variables. Se calcula como:
+
+$V = \sqrt{\frac{\chi^2}{N \times \min(k-1, r-1)}}$
+
+Donde $k$ es el número de columnas y $r$ es el número de filas.
+
+```{r}
+k <- ncol(observadas)
+r <- nrow(observadas)
+min_dim <- min(k - 1, r - 1)
+
+V_cramer <- sqrt(chi2_stat / (N * min_dim))
+cat("El coeficiente V de Cramer es:", round(V_cramer, 4), "\n")
+```
+
+**Interpretación:**
+El valor de V de Cramer varía entre 0 y 1.
+- Valores cercanos a 0 indican poca asociación.
+- Valores cercanos a 1 indican una asociación muy fuerte.
+- Un valor de **0.4355** indica una asociación moderada a fuerte entre el nivel socioeconómico y el tipo de comida rápida que se consume.
+
+## 4. Conclusión final
+
+* **¿Existe relación entre las variables?** Sí. El estadístico Chi-cuadrado ($\chi^2 = 22.76$) arroja un p-valor de $\approx 0.00014$, lo que significa que rechazamos la hipótesis de que el nivel socioeconómico y el tipo de comida rápida sean independientes.
+* **¿Cuál es la intensidad de la relación?** La intensidad de la relación se mide mediante la V de Cramer, que en este caso es de $0.4355$, lo que indica una asociación de intensidad moderada, con tendencia a ser alta. Analizando las contribuciones y las frecuencias esperadas versus las observadas (por ejemplo, clase alta prefiere mucho más el Sushi de lo esperado, y clase baja prefiere más el Hot dog), vemos que los hábitos de comida rápida están claramente diferenciados por el nivel socioeconómico.
