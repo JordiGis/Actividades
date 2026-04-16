@@ -15,6 +15,10 @@ Actualmente, las asignaturas principales son:
 4. **Datos:** Los datos proporcionados en los enunciados deben ingresarse manualmente en data frames o matrices al inicio de la resolución del ejercicio.
 5. **Autor:** El autor de los ejercicios es Jordi Gisbert Ferriz.
 
-## Estructura del Repositorio
+## Estructura del Repositorio y Metodología General
 
-Cada nueva practica se tiene que crear una nueva carpeta con el nombre `Practica_DD_MM_YY` y dentro de ella se debe crear el archivo R Markdown con la resolución del ejercicio.
+6. **Estructura de Carpetas:** Cada nueva práctica se debe crear en una nueva carpeta con el nombre `Practica_DD_MM_YY`. Si la práctica pertenece a un bloque o subsección (por ejemplo, `Informatica`), la carpeta debe crearse dentro de esa ruta (ej. `Proyecto_IA/Informatica/Practica_DD_MM_YY`).
+7. **Nombres de Archivos:** El archivo principal R Markdown debe tener exactamente el mismo nombre que la carpeta que lo contiene (ej. `Practica_DD_MM_YY.rmd`).
+8. **Autocontención de Recursos:** Siempre que una práctica requiera de recursos externos (como datasets en formato `.csv`, `.xlsx`, etc.) que ya existan de forma general en el repositorio, **se debe hacer una copia** de estos archivos dentro de la carpeta específica de la nueva práctica. Esto asegura que cada práctica esté autocontenida con sus propios datos e imágenes.
+9. **Apartados Opcionales:** Como metodología general, si una práctica o ejercicio contiene apartados marcados como "opcionales", estos **siempre** deben realizarse de todas formas para maximizar el aprendizaje.
+10. **Formatos de Salida:** La resolución debe entregarse siempre incluyendo el archivo `.rmd` original y el archivo compilado en formato `.html`.

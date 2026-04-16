@@ -1,0 +1,195 @@
+---
+title: "Práctica: Análisis Multivariante (AED)"
+author: "Jordi Gisbert Ferriz"
+date: "14/04/2026"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Introducción
+
+En esta práctica vamos a aplicar técnicas de Análisis Exploratorio Multivariante para estudiar de forma conjunta varias variables del dataset `CURS8990-Codif.csv`. Utilizaremos gráficos multivariantes, parámetros de asociación y análisis por grupos para entender relaciones complejas entre variables.
+
+Cargamos las librerías necesarias y el dataset:
+
+```{r load_data}
+# Cargar librerías necesarias
+library(ggplot2)
+library(dplyr)
+library(GGally)
+
+# Leer los datos desde la carpeta local de la práctica
+datos <- read.csv("CURS8990-Codif.csv", stringsAsFactors = TRUE)
+
+# Mostrar un breve resumen para verificar la carga
+head(datos)
+summary(datos)
+```
+
+***
+
+## PARTE 1: Análisis de variables cuantitativas
+
+Para esta parte seleccionaremos tres variables cuantitativas: `EDAD`, `ESTATURA` y `PESO`.
+
+### 1. Representación: Diagramas de dispersión
+
+```{r pares_dispersion, fig.width=10, fig.height=4}
+# Diagramas de dispersión en pares
+p1 <- ggplot(datos, aes(x = EDAD, y = ESTATURA)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  theme_minimal() +
+  labs(title = "Edad vs Estatura", x = "Edad", y = "Estatura")
+
+p2 <- ggplot(datos, aes(x = EDAD, y = PESO)) +
+  geom_point(alpha = 0.5, color = "darkgreen") +
+  theme_minimal() +
+  labs(title = "Edad vs Peso", x = "Edad", y = "Peso")
+
+p3 <- ggplot(datos, aes(x = ESTATURA, y = PESO)) +
+  geom_point(alpha = 0.5, color = "red") +
+  theme_minimal() +
+  labs(title = "Estatura vs Peso", x = "Estatura", y = "Peso")
+
+# Mostrar los gráficos juntos
+library(gridExtra)
+grid.arrange(p1, p2, p3, ncol = 3)
+```
+
+### 2. Cálculo: Correlaciones entre variables
+
+Calculamos las correlaciones (coeficiente de Pearson) para cuantificar la fuerza y dirección de la relación.
+
+```{r correlaciones}
+# Filtrar NA si los hubiera antes del cálculo
+cor_edad_estatura <- cor(datos$EDAD, datos$ESTATURA, use = "complete.obs")
+cor_edad_peso <- cor(datos$EDAD, datos$PESO, use = "complete.obs")
+cor_estatura_peso <- cor(datos$ESTATURA, datos$PESO, use = "complete.obs")
+
+cat("Correlación Edad - Estatura:", round(cor_edad_estatura, 4), "\n")
+cat("Correlación Edad - Peso:", round(cor_edad_peso, 4), "\n")
+cat("Correlación Estatura - Peso:", round(cor_estatura_peso, 4), "\n")
+```
+
+### 3. Análisis e Interpretación
+
+- **Edad vs Estatura / Edad vs Peso:** Las correlaciones son muy cercanas a 0. Esto indica que **no existe una relación lineal** aparente entre la Edad y estas variables físicas en este grupo (probablemente todos son adultos o jóvenes adultos que ya han dejado de crecer).
+- **Estatura vs Peso:** Existe una relación **lineal y positiva**. La correlación es moderadamente fuerte (~0.6-0.7, aunque su valor exacto se calcula arriba), lo que indica que a mayor estatura, generalmente el peso también es mayor.
+
+***
+
+## PARTE 2: Variable cuantitativa según grupo
+
+Seleccionaremos `PESO` (cuantitativa) y `SEXO` (cualitativa) para analizar si la variable cualitativa influye.
+
+### 1. Representación: Boxplot por grupos
+
+```{r boxplot_peso_sexo}
+ggplot(datos, aes(x = SEXO, y = PESO, fill = SEXO)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Distribución del Peso según Sexo",
+       x = "Sexo", y = "Peso (kg)") +
+  scale_fill_brewer(palette = "Set2")
+```
+
+### 2. Análisis
+
+Calculamos las estadísticas resumen para comparar:
+
+```{r stats_peso_sexo}
+# Agrupar por sexo y calcular resumen de estadísticas de Peso
+resumen_peso <- datos %>%
+  group_by(SEXO) %>%
+  summarise(
+    Media = mean(PESO, na.rm = TRUE),
+    Mediana = median(PESO, na.rm = TRUE),
+    Desviacion = sd(PESO, na.rm = TRUE),
+    Minimo = min(PESO, na.rm = TRUE),
+    Maximo = max(PESO, na.rm = TRUE)
+  )
+
+print(resumen_peso)
+```
+
+- **Posición (mediana/media):** Se observa claramente que el grupo masculino ("chicos") tiene una media y mediana de peso superior al grupo femenino ("chicas").
+- **Dispersión:** Observando el rango intercuartílico en el boxplot y la desviación estándar, la dispersión parece ligeramente distinta (los chicos podrían tener una mayor variabilidad en los pesos más altos).
+- **Atípicos:** En el boxplot se pueden observar puntos que caen fuera de los "bigotes" (valores atípicos), los cuales representan individuos con un peso considerablemente mayor o menor al resto de su grupo.
+
+### 3. Interpretación
+
+**¿Existen diferencias entre grupos? ¿La variable cualitativa influye?**
+Sí, existen diferencias claras y significativas. La variable `SEXO` influye fuertemente en el `PESO`, ya que, en promedio, los hombres de la muestra pesan más que las mujeres, lo cual es consistente con las diferencias biológicas comunes.
+
+***
+
+## PARTE 3: Análisis multivariante conjunto
+
+Seleccionaremos dos cuantitativas (`ESTATURA` y `PESO`) y una cualitativa (`SEXO`).
+
+### 1. Representación: Scatter plot diferenciando por grupo
+
+```{r scatter_groups}
+ggplot(datos, aes(x = ESTATURA, y = PESO, color = SEXO)) +
+  geom_point(alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Estatura vs Peso diferenciado por Sexo",
+       x = "Estatura (cm)", y = "Peso (kg)") +
+  scale_color_brewer(palette = "Set1") +
+  geom_smooth(method = "lm", se = FALSE) # Añadimos líneas de tendencia
+```
+
+### 2. Análisis
+
+- **¿Existe relación entre las variables cuantitativas?** Sí, en el scatter plot global veíamos una relación positiva. A mayor estatura, mayor peso.
+- **¿Cambia la relación según el grupo?** Al observar las líneas de tendencia de cada grupo, la relación (pendiente) es similar; es decir, la relación positiva se mantiene tanto en chicos como en chicas. Sin embargo, los grupos se separan en dos "nubes" distintas: las chicas tienden a concentrarse en la zona inferior izquierda (menor estatura y peso) y los chicos en la superior derecha (mayor estatura y peso).
+- **¿Algún grupo presenta más variabilidad?** Los puntos del grupo de chicos parecen estar algo más dispersos, especialmente en la variable peso para las estaturas mayores.
+
+***
+
+## PARTE 4: Análisis multivariable ampliado (Opcional)
+
+Se requería seleccionar 3 o más variables cuantitativas. Usaremos `EDAD`, `ESTATURA`, `PESO` y `TIEMPO` (si es cuantitativa, según el dataset). Vamos a visualizar una matriz de dispersión.
+
+### 1. Representación: Matriz de dispersión
+
+```{r matriz_dispersion, fig.width=8, fig.height=8}
+# Seleccionar variables cuantitativas
+vars_cuant <- datos %>% select(EDAD, ESTATURA, PESO, TIEMPO)
+
+# Usamos ggpairs de la librería GGally para una matriz de dispersión y correlaciones
+ggpairs(vars_cuant,
+        title = "Matriz de Dispersión de Variables Cuantitativas",
+        lower = list(continuous = wrap("points", alpha = 0.5, color = "purple")),
+        upper = list(continuous = wrap("cor", size = 4))) +
+  theme_minimal()
+```
+
+### 2. Análisis
+
+- **Relaciones destacadas:** La relación más fuerte de lejos es entre `ESTATURA` y `PESO` (como ya observamos).
+- **Variables más relacionadas:** `ESTATURA` y `PESO`. Las otras variables (`EDAD` y `TIEMPO`) presentan coeficientes de correlación muy bajos (cercanos a 0) con el resto de las variables, lo que indica falta de relación lineal.
+- **Patrones/Agrupaciones:** La variable `TIEMPO` muestra una distribución bastante dispersa o aglomerada en ciertos valores (tal vez por redondeo en las respuestas de la gente al tiempo de desplazamiento).
+
+***
+
+## PARTE 5: Conclusiones
+
+**1. ¿Qué relaciones has encontrado?**
+La relación más evidente e importante es la que existe entre el `PESO` y la `ESTATURA`. También se ha encontrado que la distribución del peso y de la estatura está fuertemente dividida por el `SEXO`. Las demás variables analizadas (como `EDAD` o `TIEMPO`) no muestran ninguna relación lineal con las medidas corporales en este conjunto de estudiantes.
+
+**2. ¿Qué variables están más relacionadas?**
+Sin lugar a dudas, `ESTATURA` y `PESO`. Tienen una correlación positiva considerable y gráficamente se observa un claro patrón de crecimiento simultáneo.
+
+**3. ¿Hay diferencias entre grupos?**
+Sí, el grupo de "chicos" presenta de media mayores valores tanto en peso como en estatura que el grupo de "chicas". Esto se evidencia visualmente tanto en los boxplots individuales como en la separación por colores en los diagramas de dispersión.
+
+**4. ¿Has observado que alguna relación cambie según otra variable?**
+Al separar la relación Estatura-Peso por la variable Sexo, vemos que aunque la relación positiva (a más altura, más peso) existe en ambos grupos (misma tendencia), la nube de puntos se sitúa en rangos distintos. Esto indica que gran parte de la correlación global entre peso y estatura podría estar influenciada por la presencia de estos dos subgrupos que tienen promedios base distintos en ambas variables.
